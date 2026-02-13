@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>MacQoL</string>
+    <key>CFBundleDisplayName</key>
+    <string>MacQoL</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.macqol.app</string>
+    <key>CFBundleExecutable</key>
+    <string>MacQoL</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>CFBundleIconFile</key>
+    <string>MacQoL</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright 2026</string>
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>MacQoL needs to send commands to other applications for clipboard paste and focus mode.</string>
+    <key>NSSystemAdministrationUsageDescription</key>
+    <string>MacQoL needs accessibility permissions for clipboard paste and app blocking.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>MacQoL needs microphone access for screen recording with audio.</string>
+</dict>
+</plist>

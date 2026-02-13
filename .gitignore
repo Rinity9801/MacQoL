@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+MacQoL.app/
+MacQoL.iconset/
+icon_trimmed.png
+*.DS_Store
