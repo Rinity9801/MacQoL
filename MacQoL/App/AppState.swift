@@ -8,6 +8,7 @@ enum Feature: String, CaseIterable, Identifiable {
     case focus = "Focus"
     case todo = "Todo"
     case mindmap = "Mindmap"
+    case pip = "PiP"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -20,6 +21,7 @@ enum Feature: String, CaseIterable, Identifiable {
         case .focus: return "moon.fill"
         case .todo: return "checklist"
         case .mindmap: return "point.3.connected.trianglepath.dotted"
+        case .pip: return "pip.fill"
         case .settings: return "gear"
         }
     }

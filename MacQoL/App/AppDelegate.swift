@@ -8,7 +8,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var hubWindow: NSWindow?
     private let appState = AppState.shared
-    var modelContainer: ModelContainer?
+
+    static let sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            TodoItem.self,
+            MindmapDocument.self,
+            MindmapNode.self,
+        ])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: [config])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+    }()
 
     // Clipboard
     private var clipboardManager: ClipboardManager?
@@ -171,12 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func showHubWindow() {
         if hubWindow == nil {
             let hubView = HubView()
-            let rootView: AnyView
-            if let container = modelContainer {
-                rootView = AnyView(hubView.modelContainer(container))
-            } else {
-                rootView = AnyView(hubView)
-            }
+                .modelContainer(AppDelegate.sharedModelContainer)
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -184,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 defer: false
             )
             window.title = "MacQoL"
-            window.contentView = NSHostingView(rootView: rootView)
+            window.contentView = NSHostingView(rootView: hubView)
             window.center()
             window.isReleasedWhenClosed = false
             window.delegate = self

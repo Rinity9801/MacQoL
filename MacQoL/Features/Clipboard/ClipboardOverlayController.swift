@@ -68,11 +68,11 @@ final class ClipboardOverlayController {
                 }
             }
 
-            window.level = .modalPanel
+            window.level = .floating
             window.backgroundColor = .clear
             window.isOpaque = false
             window.hasShadow = true
-            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
             window.isMovableByWindowBackground = true
             window.appearance = nil
 
@@ -122,14 +122,22 @@ final class ClipboardOverlayController {
         selectedIndex = 0
         updateOverlaySelection()
 
-        NSApp.setActivationPolicy(.regular)
-        overlayWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        overlayWindow?.orderFrontRegardless()
+        overlayWindow?.makeKey()
 
         // Install local key monitor
         if keyMonitor == nil {
             keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 guard let self, self.overlayWindow?.isVisible == true else { return event }
+                let hasCommand = event.modifierFlags.contains(.command)
+                let chars = event.charactersIgnoringModifiers
+
+                // Cmd+W to close
+                if hasCommand && chars == "w" {
+                    self.hideOverlay()
+                    return nil
+                }
+
                 switch Int(event.keyCode) {
                 case 53:
                     self.hideOverlay()
@@ -152,12 +160,24 @@ final class ClipboardOverlayController {
                     }
                     return nil
                 default:
-                    if let chars = event.charactersIgnoringModifiers,
-                       let char = chars.first, char.isNumber,
-                       let num = Int(String(char)),
-                       num >= 1, num <= self.clipboardManager.items.count {
-                        self.pasteItem(self.clipboardManager.items[num - 1])
-                        return nil
+                    if let chars, let char = chars.first {
+                        if char == "w" {
+                            if self.selectedIndex > 0 {
+                                self.selectedIndex -= 1
+                                self.updateOverlaySelection()
+                            }
+                            return nil
+                        } else if char == "s" {
+                            if self.selectedIndex < self.clipboardManager.items.count - 1 {
+                                self.selectedIndex += 1
+                                self.updateOverlaySelection()
+                            }
+                            return nil
+                        } else if char.isNumber, let num = Int(String(char)),
+                                  num >= 1, num <= self.clipboardManager.items.count {
+                            self.pasteItem(self.clipboardManager.items[num - 1])
+                            return nil
+                        }
                     }
                     return event
                 }
@@ -171,11 +191,6 @@ final class ClipboardOverlayController {
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
             keyMonitor = nil
-        }
-
-        // Only go back to accessory if the hub window isn't visible
-        if !AppState.shared.isHubWindowVisible {
-            NSApp.setActivationPolicy(.accessory)
         }
     }
 

@@ -32,6 +32,8 @@ struct HubView: View {
             TodoListView()
         case .mindmap:
             MindmapCanvasView()
+        case .pip:
+            PiPView()
         case .settings:
             SettingsView()
         }

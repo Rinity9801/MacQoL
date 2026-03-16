@@ -11,6 +11,7 @@ final class TodoManager: ObservableObject {
 
     func addTodo(_ item: TodoItem, context: ModelContext) {
         context.insert(item)
+        try? context.save()
         scheduleReminder(for: item)
     }
 

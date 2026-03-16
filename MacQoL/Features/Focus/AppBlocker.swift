@@ -53,4 +53,39 @@ final class AppBlocker {
             }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
+
+    /// Returns a list of all installed applications on the system
+    static func installedApps() -> [(name: String, bundleID: String)] {
+        var seen = Set<String>()
+        var results: [(name: String, bundleID: String)] = []
+
+        let directories = [
+            "/Applications",
+            "/Applications/Utilities",
+            "/System/Applications",
+            "/System/Applications/Utilities",
+            NSHomeDirectory() + "/Applications"
+        ]
+
+        for dir in directories {
+            guard let urls = try? FileManager.default.contentsOfDirectory(
+                at: URL(fileURLWithPath: dir),
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+
+            for url in urls where url.pathExtension == "app" {
+                guard let bundle = Bundle(url: url),
+                      let bundleID = bundle.bundleIdentifier else { continue }
+                guard !seen.contains(bundleID) else { continue }
+                seen.insert(bundleID)
+
+                let name = FileManager.default.displayName(atPath: url.path)
+                    .replacingOccurrences(of: ".app", with: "")
+                results.append((name: name, bundleID: bundleID))
+            }
+        }
+
+        return results.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
 }

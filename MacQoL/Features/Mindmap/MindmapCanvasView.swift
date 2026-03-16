@@ -115,25 +115,20 @@ struct MindmapCanvasView: View {
             // Canvas content with pan + zoom
             ZStack {
                 // Connection lines
-                Canvas { context, size in
-                    for node in doc.nodes {
-                        for child in node.children {
+                ForEach(doc.nodes) { node in
+                    ForEach(node.children) { child in
+                        Path { path in
                             let from = CGPoint(x: node.positionX, y: node.positionY)
                             let to = CGPoint(x: child.positionX, y: child.positionY)
-
-                            var path = Path()
                             path.move(to: from)
-
-                            // Bezier curve
                             let midX = (from.x + to.x) / 2
                             path.addCurve(
                                 to: to,
                                 control1: CGPoint(x: midX, y: from.y),
                                 control2: CGPoint(x: midX, y: to.y)
                             )
-
-                            context.stroke(path, with: .color(.secondary.opacity(0.5)), lineWidth: 1.5)
                         }
+                        .stroke(Color.secondary.opacity(0.5), lineWidth: 1.5)
                     }
                 }
 

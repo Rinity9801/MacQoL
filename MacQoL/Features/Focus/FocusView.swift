@@ -6,6 +6,14 @@ struct FocusView: View {
     @State private var newWebsite = ""
     @State private var showAppPicker = false
     @State private var availableApps: [(name: String, bundleID: String)] = []
+    @State private var appSearchText = ""
+
+    private var filteredApps: [(name: String, bundleID: String)] {
+        if appSearchText.isEmpty {
+            return availableApps
+        }
+        return availableApps.filter { $0.name.localizedCaseInsensitiveContains(appSearchText) }
+    }
 
     var body: some View {
         ScrollView {
@@ -132,7 +140,8 @@ struct FocusView: View {
                     .font(.headline)
                 Spacer()
                 Button(action: {
-                    availableApps = AppBlocker.runningUserApps()
+                    availableApps = AppBlocker.installedApps()
+                    appSearchText = ""
                     showAppPicker = true
                 }) {
                     Image(systemName: "plus")
@@ -147,8 +156,15 @@ struct FocusView: View {
             } else {
                 ForEach(focusManager.blockedAppBundleIDs, id: \.self) { bundleID in
                     HStack {
-                        Text(bundleID)
-                            .font(.system(.body, design: .monospaced))
+                        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                            Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
+                                .resizable()
+                                .frame(width: 20, height: 20)
+                            Text(FileManager.default.displayName(atPath: appURL.path).replacingOccurrences(of: ".app", with: ""))
+                        } else {
+                            Text(bundleID)
+                                .font(.system(.body, design: .monospaced))
+                        }
                         Spacer()
                         Button(action: {
                             focusManager.blockedAppBundleIDs.removeAll { $0 == bundleID }
@@ -167,23 +183,31 @@ struct FocusView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Select App to Block")
                     .font(.headline)
-                    .padding(.bottom, 4)
+
+                TextField("Search apps...", text: $appSearchText)
+                    .textFieldStyle(.roundedBorder)
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(availableApps, id: \.bundleID) { app in
+                        ForEach(filteredApps, id: \.bundleID) { app in
                             Button(action: {
                                 if !focusManager.blockedAppBundleIDs.contains(app.bundleID) {
                                     focusManager.blockedAppBundleIDs.append(app.bundleID)
                                 }
                                 showAppPicker = false
                             }) {
-                                HStack {
+                                HStack(spacing: 8) {
+                                    if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID) {
+                                        Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
+                                            .resizable()
+                                            .frame(width: 20, height: 20)
+                                    }
                                     Text(app.name)
                                     Spacer()
-                                    Text(app.bundleID)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    if focusManager.blockedAppBundleIDs.contains(app.bundleID) {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                             }
                             .buttonStyle(.plain)
@@ -191,12 +215,13 @@ struct FocusView: View {
                             .padding(.horizontal, 8)
                             .background(Color.primary.opacity(0.05))
                             .cornerRadius(4)
+                            .disabled(focusManager.blockedAppBundleIDs.contains(app.bundleID))
                         }
                     }
                 }
             }
             .padding()
-            .frame(width: 400, height: 300)
+            .frame(width: 400, height: 400)
         }
     }
 
