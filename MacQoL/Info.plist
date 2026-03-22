@@ -29,6 +29,8 @@
     <key>NSSystemAdministrationUsageDescription</key>
     <string>MacQoL needs accessibility permissions for clipboard paste and app blocking.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>MacQoL needs microphone access for screen recording with audio.</string>
+    <string>MacQoL needs microphone access for screen recording with audio and per-app volume control.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>MacQoL needs audio capture access for per-app volume control.</string>
 </dict>
 </plist>

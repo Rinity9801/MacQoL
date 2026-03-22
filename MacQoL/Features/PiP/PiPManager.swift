@@ -140,21 +140,17 @@ final class PiPManager: NSObject, ObservableObject {
         panel.minSize = NSSize(width: 200 * aspectRatio, height: 200)
         panel.delegate = self
 
-        // Content view with a layer for rendering frames
-        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight))
-        contentView.wantsLayer = true
-        contentView.layer?.backgroundColor = NSColor.black.cgColor
-        contentView.layer?.cornerRadius = 8
-        contentView.layer?.masksToBounds = true
-
-        let renderLayer = CALayer()
-        renderLayer.contentsGravity = .resizeAspect
-        renderLayer.frame = contentView.bounds
-        renderLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        contentView.layer?.addSublayer(renderLayer)
+        // Content view with hover overlay buttons
+        let contentView = PiPContentView(frame: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight))
+        contentView.onClose = { [weak self] in
+            Task { @MainActor in await self?.stopPiP() }
+        }
+        contentView.onReturnToSource = { [weak self] in
+            Task { @MainActor in self?.focusSourceWindow() }
+        }
 
         panel.contentView = contentView
-        self.displayLayer = renderLayer
+        self.displayLayer = contentView.renderLayer
         self.pipWindow = panel
 
         // Position in bottom-right corner
@@ -166,6 +162,14 @@ final class PiPManager: NSObject, ObservableObject {
         }
 
         panel.orderFrontRegardless()
+    }
+
+    private func focusSourceWindow() {
+        guard let window = selectedWindow,
+              let bundleID = window.owningApplication?.bundleIdentifier else { return }
+        if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
+            app.activate()
+        }
     }
 
     private func closePiPWindow() {
@@ -213,6 +217,150 @@ extension PiPManager: NSWindowDelegate {
 }
 
 // MARK: - Stream Output
+
+// MARK: - PiP Content View (hover overlay with close + return buttons)
+
+private class PiPContentView: NSView {
+    let renderLayer = CALayer()
+    var onClose: (() -> Void)?
+    var onReturnToSource: (() -> Void)?
+
+    private let overlayView = NSView()
+    private let closeButton = PiPOverlayButton(symbolName: "xmark", toolTip: "Close PiP")
+    private let returnButton = PiPOverlayButton(symbolName: "arrow.uturn.backward", toolTip: "Return to source app")
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.black.cgColor
+        layer?.cornerRadius = 8
+        layer?.masksToBounds = true
+
+        // Video render layer
+        renderLayer.contentsGravity = .resizeAspect
+        renderLayer.frame = bounds
+        renderLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        layer?.addSublayer(renderLayer)
+
+        // Overlay container (hidden by default)
+        overlayView.wantsLayer = true
+        overlayView.layer?.backgroundColor = nil
+        overlayView.alphaValue = 0
+        overlayView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(overlayView)
+        NSLayoutConstraint.activate([
+            overlayView.topAnchor.constraint(equalTo: topAnchor),
+            overlayView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        // Buttons
+        closeButton.target = self
+        closeButton.action = #selector(closeClicked)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        overlayView.addSubview(closeButton)
+
+        returnButton.target = self
+        returnButton.action = #selector(returnClicked)
+        returnButton.translatesAutoresizingMaskIntoConstraints = false
+        overlayView.addSubview(returnButton)
+
+        NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: overlayView.topAnchor, constant: 8),
+            closeButton.trailingAnchor.constraint(equalTo: overlayView.trailingAnchor, constant: -8),
+            closeButton.widthAnchor.constraint(equalToConstant: 28),
+            closeButton.heightAnchor.constraint(equalToConstant: 28),
+
+            returnButton.topAnchor.constraint(equalTo: overlayView.topAnchor, constant: 8),
+            returnButton.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -6),
+            returnButton.widthAnchor.constraint(equalToConstant: 28),
+            returnButton.heightAnchor.constraint(equalToConstant: 28),
+        ])
+
+        // Tracking area for hover
+        let trackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
+    }
+
+    @objc private func closeClicked() {
+        onClose?()
+    }
+
+    @objc private func returnClicked() {
+        onReturnToSource?()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.15
+            overlayView.animator().alphaValue = 1
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.25
+            overlayView.animator().alphaValue = 0
+        }
+    }
+}
+
+// MARK: - PiP Overlay Button
+
+private class PiPOverlayButton: NSButton {
+    init(symbolName: String, toolTip: String) {
+        super.init(frame: .zero)
+        isBordered = false
+        bezelStyle = .regularSquare
+        self.toolTip = toolTip
+        wantsLayer = true
+        layer?.cornerRadius = 14
+        layer?.backgroundColor = NSColor.black.withAlphaComponent(0.5).cgColor
+
+        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+        image = NSImage(systemSymbolName: symbolName, accessibilityDescription: toolTip)?
+            .withSymbolConfiguration(config)
+        contentTintColor = .white
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways],
+            owner: self,
+            userInfo: nil
+        ))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        layer?.backgroundColor = NSColor.white.withAlphaComponent(0.25).cgColor
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        layer?.backgroundColor = NSColor.black.withAlphaComponent(0.5).cgColor
+    }
+}
 
 private class PiPStreamOutput: NSObject, SCStreamOutput {
     let onFrame: (CMSampleBuffer) -> Void
