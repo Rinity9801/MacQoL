@@ -34,6 +34,12 @@ struct HubView: View {
             MindmapCanvasView()
         case .pip:
             PiPView()
+        case .videoEditor:
+            VideoEditorView()
+        case .snapTap:
+            SnapTapView()
+        case .keyRemap:
+            KeyRemapView()
         case .settings:
             SettingsView()
         }

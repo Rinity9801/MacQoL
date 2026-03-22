@@ -2,8 +2,8 @@ import SwiftUI
 import ScreenCaptureKit
 
 struct RecordingView: View {
-    @ObservedObject var recordingManager = RecordingManager.shared
-    @ObservedObject var settings = RecordingSettings.shared
+    @ObservedObject private var recordingManager = RecordingManager.shared
+    @ObservedObject private var settings = RecordingSettings.shared
 
     var body: some View {
         ScrollView {

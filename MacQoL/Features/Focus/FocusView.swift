@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FocusView: View {
-    @ObservedObject var focusManager = FocusManager.shared
+    @ObservedObject private var focusManager = FocusManager.shared
 
     @State private var newWebsite = ""
     @State private var showAppPicker = false

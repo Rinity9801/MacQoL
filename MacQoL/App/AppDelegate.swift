@@ -3,6 +3,11 @@ import SwiftUI
 import SwiftData
 import Carbon
 
+/// Application lifecycle coordinator.
+///
+/// Sets up the menu bar status item, clipboard monitoring, global hotkeys,
+/// and the main hub window. All feature managers are initialized here or
+/// lazily via their `.shared` singletons.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?

@@ -2,6 +2,11 @@ import AppKit
 import ScreenCaptureKit
 import CoreMedia
 
+/// Captures a window via ScreenCaptureKit and renders it in a borderless floating panel.
+///
+/// Inherits NSObject for SCStreamDelegate and NSWindowDelegate conformance.
+/// Frames arrive on `captureQueue`, get converted to CGImage, and are displayed
+/// on main thread via a CALayer. Runs at 60fps with aspect-ratio-locked resizing.
 @MainActor
 final class PiPManager: NSObject, ObservableObject {
     static let shared = PiPManager()
@@ -21,16 +26,26 @@ final class PiPManager: NSObject, ObservableObject {
         super.init()
     }
 
+    private static let excludedBundleIDs: Set<String> = [
+        "com.apple.dock",
+        "com.apple.WindowManager",
+        "com.apple.controlcenter",
+        "com.apple.notificationcenterui",
+    ]
+
     func refreshWindows() async {
         do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            // onScreenWindowsOnly: false to pick up fullscreen apps on other Spaces
+            let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
+            let ownBundleID = Bundle.main.bundleIdentifier
             availableWindows = content.windows.filter { window in
-                window.isOnScreen &&
-                window.title != nil &&
-                !window.title!.isEmpty &&
-                window.owningApplication?.bundleIdentifier != "com.apple.dock" &&
-                window.owningApplication?.bundleIdentifier != "com.apple.WindowManager" &&
-                window.owningApplication?.bundleIdentifier != Bundle.main.bundleIdentifier
+                let bundleID = window.owningApplication?.bundleIdentifier ?? ""
+                guard bundleID != ownBundleID,
+                      !Self.excludedBundleIDs.contains(bundleID) else { return false }
+                // Include if: has a title, OR is reasonably sized (catches Java/game windows with empty titles)
+                let hasTitle = window.title != nil && !window.title!.isEmpty
+                let isLargeEnough = window.frame.width >= 200 && window.frame.height >= 200
+                return hasTitle || isLargeEnough
             }
         } catch {
             self.error = error.localizedDescription
@@ -47,9 +62,8 @@ final class PiPManager: NSObject, ObservableObject {
             let filter = SCContentFilter(desktopIndependentWindow: window)
             let config = SCStreamConfiguration()
 
-            // 15fps is enough for a preview overlay
-            config.minimumFrameInterval = CMTime(value: 1, timescale: 15)
-            config.queueDepth = 3
+            config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
+            config.queueDepth = 8
             config.pixelFormat = kCVPixelFormatType_32BGRA
             config.capturesAudio = false
 
@@ -109,25 +123,29 @@ final class PiPManager: NSObject, ObservableObject {
 
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),
-            styleMask: [.titled, .closable, .resizable, .nonactivatingPanel, .utilityWindow],
+            styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: false
         )
-        panel.title = "PiP - \(title)"
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.aspectRatio = NSSize(width: aspectRatio, height: 1.0)
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.isMovableByWindowBackground = true
+        panel.contentAspectRatio = NSSize(width: aspectRatio, height: 1.0)
         panel.minSize = NSSize(width: 200 * aspectRatio, height: 200)
-        panel.backgroundColor = .black
         panel.delegate = self
 
         // Content view with a layer for rendering frames
         let contentView = NSView(frame: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight))
         contentView.wantsLayer = true
         contentView.layer?.backgroundColor = NSColor.black.cgColor
+        contentView.layer?.cornerRadius = 8
+        contentView.layer?.masksToBounds = true
 
         let renderLayer = CALayer()
         renderLayer.contentsGravity = .resizeAspect

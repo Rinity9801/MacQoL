@@ -67,6 +67,36 @@ struct DashboardView: View {
                 ) {
                     appState.activeFeature = .mindmap
                 }
+
+                // Video Editor
+                DashboardCard(
+                    title: "Video Editor",
+                    icon: "film.stack",
+                    color: .pink,
+                    status: "\(VideoEditorManager.shared.clips.count) clip\(VideoEditorManager.shared.clips.count == 1 ? "" : "s")"
+                ) {
+                    appState.activeFeature = .videoEditor
+                }
+
+                // Snap Tap
+                DashboardCard(
+                    title: "Snap Tap",
+                    icon: "keyboard.badge.ellipsis",
+                    color: .cyan,
+                    status: SnapTapManager.shared.isActive ? "Active · \(SnapTapManager.shared.pairs.filter(\.enabled).count) pairs" : "Inactive"
+                ) {
+                    appState.activeFeature = .snapTap
+                }
+
+                // Key Remap
+                DashboardCard(
+                    title: "Key Remap",
+                    icon: "arrow.triangle.swap",
+                    color: .indigo,
+                    status: KeyRemapManager.shared.isActive ? "Active · \(KeyRemapManager.shared.mappings.filter(\.enabled).count) mappings" : "Inactive"
+                ) {
+                    appState.activeFeature = .keyRemap
+                }
             }
             .padding(24)
 

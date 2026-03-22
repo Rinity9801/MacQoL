@@ -4,8 +4,24 @@ import AppKit
 import SwiftUI
 import Combine
 
-/// Unified hotkey manager based on ShadowPlay's multi-hotkey design.
-/// Signature: 'MQOL', IDs: 1=clipboard, 2=saveClip, 3=toggleRecording, 4=toggleFocus
+/// Global hotkey registration via Carbon EventHotKey API.
+///
+/// Registers system-wide keyboard shortcuts that work even when the app isn't focused.
+/// Each hotkey has a unique ID dispatched through a single Carbon event handler.
+///
+/// ## Hotkey IDs
+/// - 1: Clipboard overlay
+/// - 2: Save recording clip
+/// - 3: Toggle recording
+/// - 4: Toggle focus session
+///
+/// ## Adding a new hotkey
+/// 1. Add @AppStorage properties for keycode + modifiers
+/// 2. Add an EventHotKeyRef property
+/// 3. Add a callback closure property
+/// 4. Register in `registerAllHotkeys()` with the next ID
+/// 5. Handle in the event handler switch
+/// 6. Add display string in `updateDisplayStrings()`
 final class HotkeyManager: ObservableObject {
     static let shared = HotkeyManager()
 
@@ -33,11 +49,11 @@ final class HotkeyManager: ObservableObject {
     @AppStorage("clipboardHotkeyCode") private var clipboardHotkeyCode: Int = 9 // V
     @AppStorage("clipboardHotkeyModifiers") private var clipboardHotkeyModifiers: Int = 0x180108 // Cmd+Option
 
-    @AppStorage("saveClipHotkeyCode") private var saveClipHotkeyCode: Int = 1 // S
-    @AppStorage("saveClipHotkeyModifiers") private var saveClipHotkeyModifiers: Int = 0x100108 // Cmd+Shift
+    @AppStorage("saveClipHotkeyCode2") private var saveClipHotkeyCode: Int = 1 // S
+    @AppStorage("saveClipHotkeyModifiers2") private var saveClipHotkeyModifiers: Int = 0x1A0108 // Cmd+Option+Shift
 
-    @AppStorage("toggleRecordingHotkeyCode") private var toggleRecordingHotkeyCode: Int = 15 // R
-    @AppStorage("toggleRecordingHotkeyModifiers") private var toggleRecordingHotkeyModifiers: Int = 0x100108 // Cmd+Shift
+    @AppStorage("toggleRecordingHotkeyCode2") private var toggleRecordingHotkeyCode: Int = 15 // R
+    @AppStorage("toggleRecordingHotkeyModifiers2") private var toggleRecordingHotkeyModifiers: Int = 0x1A0108 // Cmd+Option+Shift
 
     @AppStorage("toggleFocusHotkeyCode") private var toggleFocusHotkeyCode: Int = 3 // F
     @AppStorage("toggleFocusHotkeyModifiers") private var toggleFocusHotkeyModifiers: Int = 0x180108 // Cmd+Option

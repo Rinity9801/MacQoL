@@ -1,6 +1,10 @@
 import AppKit
 import Combine
 
+/// Monitors NSPasteboard for changes and maintains a searchable clipboard history.
+///
+/// Polls the system pasteboard every 0.5s. Supports text and image items.
+/// History is persisted to UserDefaults as JSON (max 100 items, FIFO eviction).
 class ClipboardManager: ObservableObject {
     @Published var items: [ClipboardItem] = []
     @Published var hasBackup: Bool = false
@@ -71,9 +75,12 @@ class ClipboardManager: ObservableObject {
 
     func clearHistory() {
         if !items.isEmpty {
-            if let encoded = try? JSONEncoder().encode(items) {
+            do {
+                let encoded = try JSONEncoder().encode(items)
                 UserDefaults.standard.set(encoded, forKey: backupKey)
                 hasBackup = true
+            } catch {
+                Log.error("Failed to encode clipboard backup", error)
             }
         }
         items.removeAll()
@@ -95,15 +102,20 @@ class ClipboardManager: ObservableObject {
     }
 
     private func saveHistory() {
-        if let encoded = try? JSONEncoder().encode(items) {
+        do {
+            let encoded = try JSONEncoder().encode(items)
             UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
+        } catch {
+            Log.error("Failed to save clipboard history", error)
         }
     }
 
     private func loadHistory() {
-        if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let decoded = try? JSONDecoder().decode([ClipboardItem].self, from: data) {
-            items = decoded
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else { return }
+        do {
+            items = try JSONDecoder().decode([ClipboardItem].self, from: data)
+        } catch {
+            Log.error("Failed to load clipboard history", error)
         }
     }
 

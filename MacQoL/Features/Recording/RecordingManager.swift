@@ -12,6 +12,11 @@ enum RecordingState: Equatable {
     case error(String)
 }
 
+/// Continuously buffers screen + audio to a ring buffer, saving the last N seconds on demand.
+///
+/// State machine: idle → buffering (capturing to ring buffer) → saving (writing to MP4) → idle.
+/// Coordinates CaptureEngine (ScreenCaptureKit), AudioEngine (AVAudioEngine),
+/// VideoEncoder (VideoToolbox H.264/HEVC), FileWriter (MP4 container), and RingBuffer.
 @MainActor
 final class RecordingManager: ObservableObject {
     static let shared = RecordingManager()

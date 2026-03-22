@@ -126,29 +126,27 @@ struct WindowRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let appName = window.owningApplication?.applicationName {
-                if let bundleID = window.owningApplication?.bundleIdentifier,
-                   let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                    Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
-                        .resizable()
-                        .frame(width: 24, height: 24)
-                } else {
-                    Image(systemName: "macwindow")
-                        .frame(width: 24, height: 24)
-                }
+            if let bundleID = window.owningApplication?.bundleIdentifier,
+               let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
+                    .resizable()
+                    .frame(width: 24, height: 24)
+            } else {
+                Image(systemName: "macwindow")
+                    .frame(width: 24, height: 24)
+            }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(window.title ?? "Untitled")
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                let title = (window.title ?? "").isEmpty
+                    ? (window.owningApplication?.applicationName ?? "Untitled")
+                    : window.title!
+                Text(title)
+                    .lineLimit(1)
+                if let appName = window.owningApplication?.applicationName {
                     Text(appName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } else {
-                Image(systemName: "macwindow")
-                    .frame(width: 24, height: 24)
-                Text(window.title ?? "Untitled")
-                    .lineLimit(1)
             }
 
             Spacer()

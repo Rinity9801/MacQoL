@@ -7,6 +7,10 @@ enum FocusState: Equatable {
     case paused
 }
 
+/// Pomodoro-style focus timer that blocks distracting apps and websites.
+///
+/// When a session is active, `AppBlocker` kills processes matching blocked bundle IDs
+/// and `WebsiteBlocker` modifies /etc/hosts to block domains. Both are reverted on stop.
 @MainActor
 final class FocusManager: ObservableObject {
     static let shared = FocusManager()

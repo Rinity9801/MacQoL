@@ -9,6 +9,9 @@ enum Feature: String, CaseIterable, Identifiable {
     case todo = "Todo"
     case mindmap = "Mindmap"
     case pip = "PiP"
+    case videoEditor = "Video Editor"
+    case snapTap = "Snap Tap"
+    case keyRemap = "Key Remap"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -22,6 +25,9 @@ enum Feature: String, CaseIterable, Identifiable {
         case .todo: return "checklist"
         case .mindmap: return "point.3.connected.trianglepath.dotted"
         case .pip: return "pip.fill"
+        case .videoEditor: return "film.stack"
+        case .snapTap: return "keyboard.badge.ellipsis"
+        case .keyRemap: return "arrow.triangle.swap"
         case .settings: return "gear"
         }
     }

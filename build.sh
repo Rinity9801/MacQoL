@@ -28,8 +28,15 @@ else
     echo "    Warning: ${APP_NAME}.icns not found, skipping icon"
 fi
 
-echo "==> Signing app (ad-hoc)..."
-codesign --force --deep --sign - "${BUNDLE}"
+echo "==> Signing app..."
+IDENTITY=$(security find-identity -v -p codesigning | head -1 | sed 's/.*"\(.*\)"/\1/')
+if [ -n "$IDENTITY" ] && [ "$IDENTITY" != "0 valid identities found" ]; then
+    codesign --force --deep --sign "$IDENTITY" "${BUNDLE}"
+    echo "    Signed with: $IDENTITY"
+else
+    codesign --force --deep --sign - "${BUNDLE}"
+    echo "    Signed ad-hoc (permissions will reset each build)"
+fi
 
 echo "==> Done! ${BUNDLE} is ready."
 echo "    Run with: open ${BUNDLE}"

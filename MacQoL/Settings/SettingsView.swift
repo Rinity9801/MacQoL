@@ -3,8 +3,8 @@ import AVFoundation
 import ServiceManagement
 
 struct SettingsView: View {
-    @ObservedObject var settings = RecordingSettings.shared
-    @ObservedObject var hotkeyManager = HotkeyManager.shared
+    @ObservedObject private var settings = RecordingSettings.shared
+    @ObservedObject private var hotkeyManager = HotkeyManager.shared
 
     @State private var availableMicrophones: [AVCaptureDevice] = []
     @State private var isRecordingClipboardHotkey = false
